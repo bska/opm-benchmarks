@@ -441,11 +441,8 @@ int main(int varnum, char** vararg)
     if (eclParser.hasField("SATNUM")) {
         satnums = eclParser.getIntegerValue("SATNUM");
     }
-    else if (eclParser.hasField("ROCKTYPE")) {
-        satnums = eclParser.getIntegerValue("ROCKTYPE");
-    }
     else {
-        if (isMaster) cout << "Warning: SATNUM or ROCKTYPE not found in input file, assuming only one rocktype" << endl;
+        if (isMaster) cout << "SATNUM not found in input file, assuming only one rocktype" << endl;
     }
 
     int maxSatnum = 0;
