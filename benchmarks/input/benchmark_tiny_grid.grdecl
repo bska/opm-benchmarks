@@ -2257,7 +2257,7 @@ PORO
 
 -- 1 = TBED Flood Sand1--
 -- 2 = TBED Flood Mud--
-ROCKTYPE
+SATNUM
  2 2 2 2 2 2 2 2
  2 2 2 2 2 2 2 2
  2 2 2 2 2 2 2 2

@@ -30,7 +30,7 @@
      but is built in at compiler time by embedding hexadecimal (1 byte) input data files. See 
      README for further documentation.
    - Other command line options are not supported.
-   - The construction of eclParser and stone data is changed due to change in input routine.
+   - The construction of deck and stone data is changed due to change in input routine.
    - All checks on number of input from command line are removed (since this no longer is valid).
    - Some option defaults are changed:
        points = 20
@@ -394,42 +394,41 @@ int main(int varnum, char** vararg)
     if (isMaster) cout << "Parsing Eclipse file... ";
     flush(cout);   start = clock();
 
-    // Original parsing command:
-    // Opm::EclipseGridParser eclParser(ECLIPSEFILENAME, false);
-
-    // Benchmark version:
-    Opm::EclipseGridParser eclParser;
-    stringstream gridstream(stringstream::in | stringstream::out);
-    inflate (eclipseInput, sizeof (eclipseInput) / sizeof (eclipseInput[0]), gridstream);
-    eclParser.read(gridstream, false);
+    // create the parser
+    Opm::ParserPtr parser(new Opm::Parser);
+    stringstream *gridstringstream(new stringstream(stringstream::in | stringstream::out));
+    std::shared_ptr<std::istream> gridstream(gridstringstream);
+    inflate (eclipseInput, sizeof (eclipseInput) / sizeof (eclipseInput[0]), *gridstringstream);
+    Opm::DeckConstPtr deck = parser->parseStream(gridstream);
 
     finish = clock();   timeused = (double(finish)-double(start))/CLOCKS_PER_SEC;
     if (isMaster) cout << " (" << timeused <<" secs)" << endl;
 
     start = clock();
     // Check that we have the information we need from the eclipse file:
-    if (! (eclParser.hasField("SPECGRID") && eclParser.hasField("COORD") && eclParser.hasField("ZCORN")
-           && eclParser.hasField("PORO") && eclParser.hasField("PERMX"))) {
+    if (! (deck->hasKeyword("SPECGRID") && deck->hasKeyword("COORD") && deck->hasKeyword("ZCORN")
+           && deck->hasKeyword("PORO") && deck->hasKeyword("PERMX"))) {
         if (isMaster) cerr << "Error: Did not find SPECGRID, COORD, ZCORN, PORO and PERMX in Eclipse file." << endl;
         usageandexit();
     }
 
-    vector<double>  poros = eclParser.getFloatingPointValue("PORO");
-    vector<double> permxs = eclParser.getFloatingPointValue("PERMX");
-    vector<double> zcorns = eclParser.getFloatingPointValue("ZCORN");
-    vector<int>  griddims = eclParser.getSPECGRID().dimensions;
-    int x_res = griddims[0];
-    int y_res = griddims[1];
-    int z_res = griddims[2];
+    vector<double>  poros = deck->getKeyword("PORO")->getRawDoubleData();
+    vector<double> permxs = deck->getKeyword("PERMX")->getRawDoubleData();
+    vector<double> zcorns = deck->getKeyword("ZCORN")->getRawDoubleData();
+
+    Opm::DeckRecordConstPtr specgridRecord(deck->getKeyword("SPECGRID")->getRecord(0));
+    int x_res = specgridRecord->getItem("NX")->getInt(0);
+    int y_res = specgridRecord->getItem("NY")->getInt(0);
+    int z_res = specgridRecord->getItem("NZ")->getInt(0);
 
 
     // Load anisotropic (only diagonal supported) input if present in grid
     vector<double> permys, permzs;
 
-    if (eclParser.hasField("PERMY") && eclParser.hasField("PERMZ")) {
+    if (deck->hasKeyword("PERMY") && deck->hasKeyword("PERMZ")) {
         anisotropic_input = true;
-        permys = eclParser.getFloatingPointValue("PERMY");
-        permzs = eclParser.getFloatingPointValue("PERMZ");
+        permys = deck->getKeyword("PERMY")->getRawDoubleData();
+        permzs = deck->getKeyword("PERMZ")->getRawDoubleData();
         if (isMaster) cout << "Info: PERMY and PERMZ present, going into anisotropic input mode, no J-functions\n";
         if (isMaster) cout << "      Options -relPermCurve and -jFunctionCurve is meaningless.\n";
     }
@@ -438,14 +437,11 @@ int main(int varnum, char** vararg)
     /* Initialize a default satnums-vector with only "ones" (meaning only one rocktype) */
     vector<int> satnums(poros.size(), 1);
 
-    if (eclParser.hasField("SATNUM")) {
-        satnums = eclParser.getIntegerValue("SATNUM");
-    }
-    else if (eclParser.hasField("ROCKTYPE")) {
-        satnums = eclParser.getIntegerValue("ROCKTYPE");
+    if (deck->hasKeyword("SATNUM")) {
+        satnums = deck->getKeyword("SATNUM")->getIntData();
     }
     else {
-        if (isMaster) cout << "Warning: SATNUM or ROCKTYPE not found in input file, assuming only one rocktype" << endl;
+        if (isMaster) cout << "SATNUM not found in input file, assuming only one rocktype" << endl;
     }
 
     int maxSatnum = 0;
@@ -840,8 +836,7 @@ int main(int varnum, char** vararg)
     int linsolver_verbosity = atoi(options["linsolver_verbosity"].c_str());
     int linsolver_type = atoi(options["linsolver_type"].c_str());
     bool twodim_hack = false;
-    eclParser.convertToSI();
-    upscaler.init(eclParser, boundaryCondition,
+    upscaler.init(deck, boundaryCondition,
                   Opm::unit::convert::from(minPerm, Opm::prefix::milli*Opm::unit::darcy),
                   ztol, linsolver_tolerance, linsolver_verbosity, linsolver_type, twodim_hack);
 
