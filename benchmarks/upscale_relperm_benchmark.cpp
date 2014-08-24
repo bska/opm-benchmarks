@@ -113,6 +113,8 @@
 #include <opm/core/utility/MonotCubicInterpolator.hpp>
 #include <opm/upscaling/SinglePhaseUpscaler.hpp>
 
+#include <opm/core/utility/Units.hpp>
+
 // Choose model:
 //   - Debug: MODEL_TYPE 0  (1138 active cells, ~0 MB)
 //   - Small: MODEL_TYPE 1  (35751 active cells, ~5 MB)
@@ -325,7 +327,9 @@ int main(int varnum, char** vararg)
 
 
     // Conversion factor, multiply mD numbers with this to get m² numbers
-    const double milliDarcyToSqMetre = 9.869233e-16;
+    const double milliDarcyToSqMetre =
+        Opm::unit::convert::to(1.0*Opm::prefix::milli*Opm::unit::darcy,
+                               Opm::unit::square(Opm::unit::meter));
     // Reference: http://www.spe.org/spe-site/spe/spe/papers/authors/Metric_Standard.pdf
 
 
