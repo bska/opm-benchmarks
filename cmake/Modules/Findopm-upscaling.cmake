@@ -12,6 +12,15 @@
 
 include (opm-upscaling-prereqs)
 include (OpmPackage)
+
+find_dune_version ("dune" "istl")
+if((DUNE_ISTL_VERSION_MAJOR GREATER 2) OR
+   (DUNE_ISTL_VERSION_MAJOR EQUAL 2 AND DUNE_ISTL_VERSION_MINOR GREATER 2))
+  set(_opmupscaling_LIBRARY opmupscaling)
+else()
+  set(_opmupscaling_LIBRARY "")
+endif()
+
 find_opm_package (
   # module name
   "opm-upscaling"
@@ -23,7 +32,7 @@ find_opm_package (
   "opm/upscaling/SinglePhaseUpscaler.hpp"
 
   # library to search for
-  "opmupscaling"
+  "${_opmupscaling_LIBRARY}"
 
   # defines to be added to compilations
   ""
