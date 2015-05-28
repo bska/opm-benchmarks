@@ -16,21 +16,20 @@
 
 cmake_minimum_required (VERSION 2.8)
 
+# additional search modules
 set( OPM_CMAKE_ROOT "" CACHE PATH "Root directory containing OPM related cmake modules")
+option(SIBLING_SEARCH "Search for other modules in sibling directories?" ON)
 
-include (OpmInit OPTIONAL RESULT_VARIABLE OPM_INIT)
+if(NOT OPM_CMAKE_ROOT)
+   find_package(opm-cmake QUIET)
+endif()
 
-if (OPM_INIT) 
-
-   # We actually found the OpmInit module without using the OPM_CMAKE_ROOT variable.
-   # The build needs the variable $OPM_MACROS_ROOT to be set, so here we infer it 
-   # by backtracing from the location of the OpmInit module.
-   get_filename_component( TMP1 ${OPM_INIT} PATH )
-   get_filename_component( TMP2 ${TMP1} PATH )
-   get_filename_component( OPM_MACROS_ROOT ${TMP2} PATH )
-
+if (opm-cmake_FOUND)
+   include(OpmInit)
 else()
-
+   if (NOT OPM_CMAKE_ROOT AND SIBLING_SEARCH)
+      set(OPM_CMAKE_ROOT ${PROJECT_SOURCE_DIR}/../opm-cmake)
+   endif()
    if (OPM_CMAKE_ROOT)
       list( APPEND CMAKE_MODULE_PATH "${OPM_CMAKE_ROOT}/cmake/Modules")
       include (OpmInit OPTIONAL RESULT_VARIABLE OPM_INIT)
@@ -38,7 +37,7 @@ else()
    endif()
 
    if (NOT OPM_INIT)
-      message( "" )       
+      message( "" )
       message( " /-------------------------------------------------------------------------------\\")
       message( " |  Could not locate the opm build macros. The opm build macros                  |")
       message( " |  are in a separate repository - instructions to proceed:                      |")
@@ -48,7 +47,7 @@ else()
       message( " |    2. Run cmake in the current project with -DOPM_CMAKE_ROOT=<path>/opm-cmake |")
       message( " |                                                                               |") 
       message( " \\-------------------------------------------------------------------------------/")
-      message( "" )       
+      message( "" )
       message( FATAL_ERROR "Could not find OPM Macros")
    endif()
 
@@ -57,11 +56,6 @@ endif()
 # not the same location as most of the other projects? this hook overrides
 macro (dir_hook)
 endmacro (dir_hook)
-
-# project information is in dune.module. Read this file and set variables.
-# we cannot generate dune.module since it is read by dunecontrol before
-# the build starts, so it makes sense to keep the data there then.
-include (OpmInit)
 
 # list of prerequisites for this particular project; this is in a
 # separate file (in cmake/Modules sub-directory) because it is shared
@@ -93,12 +87,6 @@ endmacro (tests_hook)
 
 # all setup common to the OPM library modules is done here
 include (OpmLibMain)
-
-add_custom_target(check-commits
-									COMMAND ${CMAKE_COMMAND}
-													-DPROJECT_SOURCE_DIR=${PROJECT_SOURCE_DIR}
-													-DCMAKE_BINARY_DIR=${CMAKE_BINARY_DIR}
-													-P ${PROJECT_SOURCE_DIR}/cmake/Scripts/CheckCommits.cmake)
 
 # encode test cases so they can be embedded in the executable
 include (${PROJECT_SOURCE_DIR}/EmbedCases.cmake)
