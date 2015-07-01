@@ -1,5 +1,10 @@
 These are the release notes for opm-benchmarks
 
+THIS MODULE IS DEPRECATED.
+The benchmarks are instead integrated in the opm-upscaling module.
+
+-------------------------------
+
 Opm-benchmarks currently consists of one benchmark with two included data sets.
 It is the mpi version of the upscale_relperm code from opm-upscaling, and can
 distribute to a maximum of 21 cpus in it's current form. The benhcmark is
