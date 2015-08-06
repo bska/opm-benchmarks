@@ -399,11 +399,12 @@ int main(int varnum, char** vararg)
     flush(cout);   start = clock();
 
     // create the parser
+    Opm::ParseMode parseMode;
     Opm::ParserPtr parser(new Opm::Parser);
     stringstream *gridstringstream(new stringstream(stringstream::in | stringstream::out));
     std::shared_ptr<std::istream> gridstream(gridstringstream);
     inflate (eclipseInput, sizeof (eclipseInput) / sizeof (eclipseInput[0]), *gridstringstream);
-    Opm::DeckConstPtr deck = parser->parseStream(gridstream);
+    Opm::DeckConstPtr deck = parser->parseStream(gridstream , parseMode);
 
     finish = clock();   timeused = (double(finish)-double(start))/CLOCKS_PER_SEC;
     if (isMaster) cout << " (" << timeused <<" secs)" << endl;
